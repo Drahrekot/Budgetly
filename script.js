@@ -8,6 +8,7 @@ const noChart = document.getElementById('noChart');
 
 let transactions = JSON.parse(localStorage.getItem('budget-transactions')) || [];
 let chart = null;
+let currentFilter = 'all';
 
 const sortOrderSelect = document.getElementById('sortOrder');
 
@@ -70,10 +71,15 @@ function render() {
         'Other': '📦'
     };
 
+    let filteredTransactions = transactions;
+    if (typeof currentFilter !== 'undefined' && currentFilter !== 'all') {
+        filteredTransactions = transactions.filter(t => t.type === currentFilter);
+    }
+    
     txList.innerHTML = '';
-    noTx.style.display = transactions.length === 0 ? 'block' : 'none';
+    noTx.style.display = filteredTransactions.length === 0 ? 'block' : 'none';
 
-    let sortedTransactions = [...transactions];
+    let sortedTransactions = [...filteredTransactions];
     const sortValue = sortOrderSelect.value;
     
     if (sortValue === 'date-desc') {
@@ -110,22 +116,16 @@ function render() {
 }
 
 function renderChart() {
-    const expenses = transactions.filter(t => t.type === 'expense');
-    noChart.style.display = expenses.length === 0 ? 'block' : 'none';
+    let visibleTx = transactions;
+    if (typeof currentFilter !== 'undefined' && currentFilter !== 'all') {
+        visibleTx = transactions.filter(t => t.type === currentFilter);
+    }
+
+    noChart.style.display = visibleTx.length === 0 ? 'block' : 'none';
 
     // Group by Date for over time line tracking
-    const dateTotals = {};
-    expenses.forEach(t => {
-        dateTotals[t.date] = (dateTotals[t.date] || 0) + t.amount;
-    });
-
-    const sortedDates = Object.keys(dateTotals).sort((a,b) => new Date(a) - new Date(b));
-    const labels = sortedDates.map(d => {
-        // Strip out the year for a cleaner label if present
-        const parts = d.split(','); 
-        return parts[0];
-    });
-    const data = sortedDates.map(d => dateTotals[d]);
+    const allDates = [...new Set(visibleTx.map(t => t.date))].sort((a,b) => new Date(a) - new Date(b));
+    const labels = allDates.map(d => d.split(',')[0]);
 
     if(typeof Chart !== 'undefined') Chart.defaults.color = '#8f8f9d';
 
@@ -133,26 +133,58 @@ function renderChart() {
 
     if (labels.length === 0) return;
 
+    const datasets = [];
+
+    if (currentFilter === 'all' || currentFilter === 'income') {
+        const incomeTotals = {};
+        allDates.forEach(d => incomeTotals[d] = 0);
+        visibleTx.filter(t => t.type === 'income').forEach(t => incomeTotals[t.date] += t.amount);
+
+        datasets.push({
+            label: 'Income',
+            data: allDates.map(d => incomeTotals[d]),
+            borderColor: '#34d399',
+            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#0f0f11',
+            pointBorderColor: '#34d399',
+            pointBorderWidth: 2,
+            pointRadius: currentFilter === 'all' ? 3 : 4,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#ffffff'
+        });
+    }
+
+    if (currentFilter === 'all' || currentFilter === 'expense') {
+        const expenseTotals = {};
+        allDates.forEach(d => expenseTotals[d] = 0);
+        visibleTx.filter(t => t.type === 'expense').forEach(t => expenseTotals[t.date] += t.amount);
+
+        datasets.push({
+            label: 'Expenses',
+            data: allDates.map(d => expenseTotals[d]),
+            borderColor: '#fb7185',
+            backgroundColor: 'rgba(251, 113, 133, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#0f0f11',
+            pointBorderColor: '#fb7185',
+            pointBorderWidth: 2,
+            pointRadius: currentFilter === 'all' ? 3 : 4,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#ffffff'
+        });
+    }
+
     const ctx = document.getElementById('myChart').getContext('2d');
     chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels,
-            datasets: [{
-                label: 'Expenses',
-                data,
-                borderColor: '#8b5cf6',
-                backgroundColor: 'rgba(139, 92, 246, 0.15)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointBackgroundColor: '#0f0f11',
-                pointBorderColor: '#8b5cf6',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#ffffff'
-            }]
+            datasets
         },
         options: {
             responsive: true,
@@ -255,6 +287,16 @@ document.addEventListener('click', function(e) {
 setupCustomSelect('categoryWrapper');
 setupCustomSelect('sortWrapper', true);
 
+// Setup Filter Tabs
+document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        currentFilter = e.target.dataset.filter;
+        render();
+    });
+});
+
 // Custom Cursor Logic
 const cursor = document.getElementById('cursor');
 
@@ -270,7 +312,7 @@ document.addEventListener('mousemove', (e) => {
 });
 
 // Add hover effect to interactive elements
-const interactiveSelectors = 'button, .custom-select-trigger, .custom-option, input, canvas, li, .del-btn';
+const interactiveSelectors = 'button, .filter-tab, .custom-select-trigger, .custom-option, input, canvas, li, .del-btn';
 
 function addCursorHoverEffects() {
     const interactives = document.querySelectorAll(interactiveSelectors);

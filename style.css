@@ -101,6 +101,7 @@ h3 {
 .summary-card,
 .form-card,
 .chart-card,
+.filter-card,
 .list-card {
     background: rgba(15, 15, 17, 0.6);
     backdrop-filter: blur(24px);
@@ -115,10 +116,48 @@ h3 {
 .summary-card:hover,
 .form-card:hover,
 .chart-card:hover,
+.filter-card:hover,
 .list-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 20px rgba(139, 92, 246, 0.05);
     border-color: rgba(255, 255, 255, 0.15);
+}
+
+.filter-card {
+    padding: 16px;
+    opacity: 0;
+    animation: fadeSlideUp 0.6s ease forwards;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.filter-tab {
+    flex: 1;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.filter-tab:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ededed;
+}
+
+.filter-tab.active {
+    background: rgba(139, 92, 246, 0.15);
+    color: #ffffff;
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
 }
 
 /* Summary cards */
