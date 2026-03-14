@@ -99,14 +99,16 @@ function render() {
         const emoji = categoryEmojis[t.category] || '';
         const dateStr = t.date ? ` • ${t.date}` : '';
         li.innerHTML = `
-      <div class="tx-left">
-        <span class="tx-desc">${t.desc}</span>
-        <span class="tx-cat">${emoji} ${t.category}${dateStr}</span>
+      <div class="tx-card">
+        <div class="tx-left">
+          <span class="tx-desc">${t.desc}</span>
+          <span class="tx-cat">${emoji} ${t.category}${dateStr}</span>
+        </div>
+        <div class="tx-right">
+          <span class="tx-amount">${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}</span>
+        </div>
       </div>
-      <div class="tx-right">
-        <span class="tx-amount">${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}</span>
-        <button class="del-btn" onclick="deleteTransaction(${t.id})">🗑️</button>
-      </div>
+      <button class="del-btn-side" onclick="deleteTransaction(${t.id})">🗑️</button>
     `;
         txList.appendChild(li);
     });
@@ -123,9 +125,9 @@ function renderChart() {
 
     noChart.style.display = visibleTx.length === 0 ? 'block' : 'none';
 
-    // Group by Date for over time line tracking
-    const allDates = [...new Set(visibleTx.map(t => t.date))].sort((a,b) => new Date(a) - new Date(b));
-    const labels = allDates.map(d => d.split(',')[0]);
+    // Map each distinct transaction for individual X-axis points
+    const allTx = [...visibleTx].sort((a,b) => a.id - b.id);
+    const labels = allTx.map(t => t.desc.length > 12 ? t.desc.substring(0, 10)+'..' : t.desc);
 
     if(typeof Chart !== 'undefined') Chart.defaults.color = '#8f8f9d';
 
@@ -136,16 +138,15 @@ function renderChart() {
     const datasets = [];
 
     if (currentFilter === 'all' || currentFilter === 'income') {
-        const incomeTotals = {};
-        allDates.forEach(d => incomeTotals[d] = 0);
-        visibleTx.filter(t => t.type === 'income').forEach(t => incomeTotals[t.date] += t.amount);
+        const incomeData = allTx.map(t => t.type === 'income' ? t.amount : null);
 
         datasets.push({
             label: 'Income',
-            data: allDates.map(d => incomeTotals[d]),
+            data: incomeData,
             borderColor: '#34d399',
             backgroundColor: 'rgba(52, 211, 153, 0.1)',
             borderWidth: 2,
+            spanGaps: true, // Bridges gaps between scattered items of same type
             fill: true,
             tension: 0.4,
             pointBackgroundColor: '#0f0f11',
@@ -158,16 +159,15 @@ function renderChart() {
     }
 
     if (currentFilter === 'all' || currentFilter === 'expense') {
-        const expenseTotals = {};
-        allDates.forEach(d => expenseTotals[d] = 0);
-        visibleTx.filter(t => t.type === 'expense').forEach(t => expenseTotals[t.date] += t.amount);
+        const expenseData = allTx.map(t => t.type === 'expense' ? t.amount : null);
 
         datasets.push({
             label: 'Expenses',
-            data: allDates.map(d => expenseTotals[d]),
+            data: expenseData,
             borderColor: '#fb7185',
             backgroundColor: 'rgba(251, 113, 133, 0.1)',
             borderWidth: 2,
+            spanGaps: true,
             fill: true,
             tension: 0.4,
             pointBackgroundColor: '#0f0f11',
@@ -290,12 +290,126 @@ setupCustomSelect('sortWrapper', true);
 // Setup Filter Tabs
 document.querySelectorAll('.filter-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        // Exclude the reset tracker button from filter active resetting
+        if (e.target.id === 'resetTrackerBtn') return; 
+
+        document.querySelectorAll('.filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
         e.target.classList.add('active');
         currentFilter = e.target.dataset.filter;
         render();
     });
 });
+
+// Setup Reset Tracker Logic
+const resetBtn = document.getElementById('resetTrackerBtn');
+const confirmModal = document.getElementById('confirmModal');
+const cancelReset = document.getElementById('cancelReset');
+const confirmResetBtn = document.getElementById('confirmReset');
+
+if (resetBtn && confirmModal) {
+    resetBtn.addEventListener('click', () => {
+        confirmModal.classList.add('active');
+    });
+
+    cancelReset.addEventListener('click', () => {
+        confirmModal.classList.remove('active');
+    });
+
+    confirmResetBtn.addEventListener('click', () => {
+        transactions = [];
+        currentFilter = 'all';
+        
+        // Re-select 'all' in the tabs visually
+        document.querySelectorAll('.filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('.filter-tabs .filter-tab[data-filter="all"]').classList.add('active');
+        
+        save();
+        render();
+        confirmModal.classList.remove('active');
+    });
+}
+
+// Calculator Logic
+const calcModal = document.getElementById('calcModal');
+const calcOpenBtn = document.getElementById('calcOpenBtn');
+const calcCloseBtn = document.getElementById('calcCloseBtn');
+const calcDisplay = document.getElementById('calcDisplay');
+const calcHistory = document.getElementById('calcHistory');
+
+let calcCurrentValue = '0';
+let calcPreviousValue = '';
+let calcOperator = null;
+
+if (calcOpenBtn && calcModal) {
+    calcOpenBtn.addEventListener('click', () => calcModal.classList.add('active'));
+    calcCloseBtn.addEventListener('click', () => calcModal.classList.remove('active'));
+}
+
+document.querySelectorAll('.calc-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const value = btn.innerText;
+        const action = btn.dataset.action;
+
+        if (!action) { // Number or decimal
+            if (calcCurrentValue === '0' && value !== '.') {
+                calcCurrentValue = value;
+            } else {
+                if (value === '.' && calcCurrentValue.includes('.')) return;
+                calcCurrentValue += value;
+            }
+        } else if (action === 'clear') {
+            calcCurrentValue = '0';
+            calcPreviousValue = '';
+            calcOperator = null;
+        } else if (action === 'delete') {
+            calcCurrentValue = calcCurrentValue.slice(0, -1);
+            if (calcCurrentValue === '') calcCurrentValue = '0';
+        } else if (action === 'operator') {
+            if (calcOperator && calcPreviousValue) {
+                calcCurrentValue = calculate();
+            }
+            calcOperator = btn.dataset.value;
+            calcPreviousValue = calcCurrentValue;
+            calcCurrentValue = '0';
+        } else if (action === 'equal') {
+            if (!calcOperator || !calcPreviousValue) return;
+            calcCurrentValue = calculate();
+            calcOperator = null;
+            calcPreviousValue = '';
+        } else if (action === 'use') {
+            const val = parseFloat(calcCurrentValue);
+            if (!isNaN(val) && val > 0) {
+                amountInput.value = val;
+                calcModal.classList.remove('active');
+            }
+        }
+        updateCalcDisplay();
+    });
+});
+
+function calculate() {
+    const prev = parseFloat(calcPreviousValue);
+    const current = parseFloat(calcCurrentValue);
+    if (isNaN(prev) || isNaN(current)) return '0';
+    
+    let result = 0;
+    switch (calcOperator) {
+        case '+': result = prev + current; break;
+        case '-': result = prev - current; break;
+        case '*': result = prev * current; break;
+        case '/': result = current !== 0 ? prev / current : 'Error'; break;
+    }
+    return result.toString();
+}
+
+function updateCalcDisplay() {
+    calcDisplay.innerText = calcCurrentValue;
+    if (calcOperator) {
+        calcHistory.innerText = `${calcPreviousValue} ${calcOperator}`;
+    } else {
+        calcHistory.innerText = '';
+    }
+}
 
 // Custom Cursor Logic
 const cursor = document.getElementById('cursor');
@@ -312,7 +426,7 @@ document.addEventListener('mousemove', (e) => {
 });
 
 // Add hover effect to interactive elements
-const interactiveSelectors = 'button, .filter-tab, .custom-select-trigger, .custom-option, input, canvas, li, .del-btn';
+const interactiveSelectors = 'button, .filter-tab, .custom-select-trigger, .custom-option, input, canvas, .tx-card, .del-btn-side, .calc-btn';
 
 function addCursorHoverEffects() {
     const interactives = document.querySelectorAll(interactiveSelectors);

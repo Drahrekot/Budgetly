@@ -12,12 +12,17 @@
 <body>
     <div class="cursor" id="cursor"></div>
     <div class="container">
-        <div class="left-panel">
+        <div class="top-row">
             <div class="header-title">
                 <img src="https://raw.githubusercontent.com/Drahrekot/Budgetly/refs/heads/main/logo.svg" alt="Logo">
                 <h1>Budgetly</h1>
             </div>
-
+            <button id="calcOpenBtn" class="icon-btn-pill" title="Calculator">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+            </button>
+        </div>
+        <div class="main-layout">
+            <div class="left-panel">
             <div class="summary">
                 <div class="summary-card total">
                     <span>Balance</span>
@@ -36,7 +41,7 @@
             <div class="form-card">
                 <h3>Add Transaction</h3>
                 <div class="form-grid">
-                    <input type="text" id="desc" placeholder="Description (e.g. Salary, Rent)" />
+                    <input type="text" id="desc" placeholder="Description" />
                     <input type="number" id="amount" placeholder="Amount" min="0" />
                     <div class="custom-select-wrapper" id="categoryWrapper">
                         <div class="custom-select">
@@ -76,22 +81,22 @@
                         <div class="sort-container">
                             <span class="sort-label">Sort:</span>
                             <div class="custom-select-wrapper" id="sortWrapper">
-                            <div class="custom-select">
-                                <div class="custom-select-trigger" style="min-width: 140px; padding: 10px;">
-                                    <span>Date: Newest</span>
-                                    <div class="arrow"></div>
+                                <div class="custom-select">
+                                    <div class="custom-select-trigger" style="min-width: 140px; padding: 10px;">
+                                        <span>Date: Newest</span>
+                                        <div class="arrow"></div>
+                                    </div>
+                                    <div class="custom-options">
+                                        <span class="custom-option selected" data-value="date-desc">Date: Newest</span>
+                                        <span class="custom-option" data-value="date-asc">Date: Oldest</span>
+                                        <span class="custom-option" data-value="amount-desc">Amount: High</span>
+                                        <span class="custom-option" data-value="amount-asc">Amount: Low</span>
+                                    </div>
                                 </div>
-                                <div class="custom-options">
-                                    <span class="custom-option selected" data-value="date-desc">Date: Newest</span>
-                                    <span class="custom-option" data-value="date-asc">Date: Oldest</span>
-                                    <span class="custom-option" data-value="amount-desc">Amount: High</span>
-                                    <span class="custom-option" data-value="amount-asc">Amount: Low</span>
-                                </div>
+                                <input type="hidden" id="sortOrder" value="date-desc" />
                             </div>
-                            <input type="hidden" id="sortOrder" value="date-desc" />
                         </div>
-                    </div>
-                </div> <!-- Close header-controls -->
+                    </div> <!-- Close header-controls -->
                 </div> <!-- Close list-header -->
                 <ul id="transactionList"></ul>
                 <p id="noTx" style="color:#aaa;font-size:13px;text-align:center;margin-top:16px;">No transactions yet
@@ -101,7 +106,59 @@
                     <button class="filter-tab" data-filter="income">Income</button>
                     <button class="filter-tab" data-filter="expense">Expense</button>
                 </div>
+                <button id="resetTrackerBtn" class="floating-reset">🗑️ Reset</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-card">
+            <h3>Reset All Data?</h3>
+            <p>This action cannot be undone. All your transactions will be permanently deleted.</p>
+            <div class="modal-actions">
+                <button id="cancelReset" class="cancel-btn">Cancel</button>
+                <button id="confirmReset" class="confirm-btn">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calculator Modal -->
+    <div id="calcModal" class="modal-overlay">
+        <div class="modal-card calc-card">
+            <div class="modal-header">
+                <h3>Calculator</h3>
+                <button id="calcCloseBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="calc-display-wrapper">
+                <div id="calcHistory" class="calc-history"></div>
+                <div id="calcDisplay" class="calc-display">0</div>
+            </div>
+            <div class="calc-grid">
+                <button class="calc-btn utility" data-action="clear">AC</button>
+                <button class="calc-btn utility" data-action="delete">DEL</button>
+                <button class="calc-btn operator" data-action="operator" data-value="/">÷</button>
+                <button class="calc-btn operator" data-action="operator" data-value="*">×</button>
+                
+                <button class="calc-btn number">7</button>
+                <button class="calc-btn number">8</button>
+                <button class="calc-btn number">9</button>
+                <button class="calc-btn operator" data-action="operator" data-value="-">-</button>
+                
+                <button class="calc-btn number">4</button>
+                <button class="calc-btn number">5</button>
+                <button class="calc-btn number">6</button>
+                <button class="calc-btn operator" data-action="operator" data-value="+">+</button>
+                
+                <button class="calc-btn number">1</button>
+                <button class="calc-btn number">2</button>
+                <button class="calc-btn number">3</button>
+                <button class="calc-btn operator" data-action="equal">=</button>
+                
+                <button class="calc-btn number double">0</button>
+                <button class="calc-btn number">.</button>
+            </div>
+            <button id="calcUseBtn" class="calc-btn use-btn" data-action="use">Use Amount</button>
         </div>
     </div>
 
