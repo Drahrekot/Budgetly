@@ -66,23 +66,16 @@
                 <p id="noChart" style="color:#aaa;font-size:13px;text-align:center;margin-top:16px;">Add expenses to see
                     chart</p>
             </div>
-
-            <div class="filter-card fade-slide-delayed" style="animation-delay: 0.3s; z-index: 10;">
-                <div class="filter-tabs">
-                    <button class="filter-tab active" data-filter="all">All</button>
-                    <button class="filter-tab" data-filter="income">Income</button>
-                    <button class="filter-tab" data-filter="expense">Expense</button>
-                </div>
-            </div>
         </div>
 
         <div class="right-panel">
             <div class="list-card">
                 <div class="list-header">
                     <h3>Transactions</h3>
-                    <div class="sort-container">
-                        <span class="sort-label">Sort:</span>
-                        <div class="custom-select-wrapper" id="sortWrapper">
+                    <div class="header-controls">
+                        <div class="sort-container">
+                            <span class="sort-label">Sort:</span>
+                            <div class="custom-select-wrapper" id="sortWrapper">
                             <div class="custom-select">
                                 <div class="custom-select-trigger" style="min-width: 140px; padding: 10px;">
                                     <span>Date: Newest</span>
@@ -98,10 +91,16 @@
                             <input type="hidden" id="sortOrder" value="date-desc" />
                         </div>
                     </div>
-                </div>
+                </div> <!-- Close header-controls -->
+                </div> <!-- Close list-header -->
                 <ul id="transactionList"></ul>
                 <p id="noTx" style="color:#aaa;font-size:13px;text-align:center;margin-top:16px;">No transactions yet
                 </p>
+                <div class="filter-tabs floating-filter">
+                    <button class="filter-tab active" data-filter="all">All</button>
+                    <button class="filter-tab" data-filter="income">Income</button>
+                    <button class="filter-tab" data-filter="expense">Expense</button>
+                </div>
             </div>
         </div>
     </div>
