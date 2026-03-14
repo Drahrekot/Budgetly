@@ -48,6 +48,7 @@ body {
     .cursor {
         display: none !important;
     }
+
     * {
         cursor: auto !important;
     }
@@ -521,7 +522,7 @@ button#addBtn:active {
 .filter-tab.active {
     background: rgba(139, 92, 246, 0.15);
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .sort-container {
@@ -671,7 +672,10 @@ li .tx-cat {
 /* Modal */
 .modal-overlay {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(3, 3, 3, 0.8);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -696,7 +700,7 @@ li .tx-cat {
     padding: 32px;
     width: 360px;
     text-align: center;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     transform: translateY(20px);
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -724,7 +728,8 @@ li .tx-cat {
     gap: 12px;
 }
 
-.cancel-btn, .confirm-btn {
+.cancel-btn,
+.confirm-btn {
     flex: 1;
     padding: 12px;
     border-radius: 12px;
@@ -911,7 +916,7 @@ li .tx-cat {
         width: 100%;
         text-align: center;
     }
-    
+
     .list-card {
         padding-bottom: 20px;
     }
@@ -926,7 +931,7 @@ li .tx-cat {
     h1 {
         font-size: 28px;
     }
-    
+
     .summary-card h2 {
         font-size: 22px;
     }

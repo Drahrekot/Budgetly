@@ -19,8 +19,6 @@
 
 ## ✨ Features
 
-- **💎 SRE.ai Aesthetic**: Ultra-modern dark mode with glassmorphism, backdrop blurs, and premium Geist typography.
-- **🖱️ iPadOS Custom Cursor**: A magnetic, intelligent cursor system that snaps to interactive elements with soft-glow bloomed highlights.
 - **📊 Advanced Line Analytics**: Dynamic line chart tracking every single transaction point (X-axis) with independent Income/Expense trend lines.
 - **🧮 Integrated Calculator**: Built-in modal calculator with a "Use Amount" shortcut to instantly pipe results into your transactions.
 - **🔍 Smart Filtering**: Segmented controls to toggle between All, Income, and Expense views instantly.
