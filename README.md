@@ -33,34 +33,32 @@
 | HTML5 | Structure |
 | CSS3 | Styling & layout |
 | JavaScript | Logic & interactivity |
-| Chart.js | Doughnut chart |
+| Chart.js | Line chart |
 | localStorage | Data persistence |
 
 ---
 
 ## 🚀 Getting Started
 
-\`\`\`bash
-git clone https://github.com/Drahrekot/Budgetly.git
-\`\`\`
+Clone the repo:
 
-Then just open \`index.html\` in your browser. No installs, no dependencies.
+    git clone https://github.com/Drahrekot/Budgetly.git
+
+Then open index.html in your browser. No installs, no dependencies.
 
 ---
 
 ## 📁 Project Structure
 
-\`\`\`
-Budgetly/
-├── index.html       # App structure
-├── style.css        # Styles & layout
-├── script.js        # Logic & localStorage
-├── logo.svg         # App logo
-└── README.md        # You are here
-\`\`\`
+    Budgetly/
+    ├── index.html       # App structure
+    ├── style.css        # Styles and layout
+    ├── script.js        # Logic and localStorage
+    ├── logo.svg         # App logo
+    └── README.md        # You are here
 
 ---
 
 <div align="center">
-  Made with ❤️ by <a href="https://github.com/Drahrekot">Drahrekot</a>
+  Made with love by <a href="https://github.com/Drahrekot">Drahrekot</a>
 </div>
