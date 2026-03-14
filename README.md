@@ -1,7 +1,7 @@
 <div align="center">
   <img src="logo.svg" alt="Budgetly Logo" width="80" />
 
-  # 💰 Budgetly
+  # Budgetly
 
   A clean, minimal budget tracker — track spending, visualize habits, stay in control.
 
