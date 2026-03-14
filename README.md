@@ -1,9 +1,9 @@
 <div align="center">
   <img src="logo.svg" alt="Budgetly Logo" width="80" />
 
-  # ?? Budgetly
+  # Budgetly
 
-  A clean, minimal budget tracker — track spending, visualize habits, stay in control.
+  A clean, minimal budget tracker ï¿½ track spending, visualize habits, stay in control.
 
   ![HTML](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
   ![CSS](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white)
@@ -21,7 +21,7 @@
 - ?? Add income and expense transactions with categories
 - ?? Live spending breakdown with an animated doughnut chart
 - ?? Real-time balance, income and expense totals
-- ?? Persistent data with localStorage — survives page refresh
+- ?? Persistent data with localStorage ï¿½ survives page refresh
 - ?? Fully responsive on mobile and desktop
 
 ---
