@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Budget Tracker</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="cursor" id="cursor"></div>
+    <div class="container">
+        <div class="left-panel">
+            <div class="header-title">
+                <img src="C:\Users\vity\Coding\AntiGravity\Budgety\logo.svg" alt="Logo">
+                <h1>Budgetly</h1>
+            </div>
+
+            <div class="summary">
+                <div class="summary-card total">
+                    <span>Balance</span>
+                    <h2 id="balance">₹0.00</h2>
+                </div>
+                <div class="summary-card income">
+                    <span>Income</span>
+                    <h2 id="totalIncome">₹0.00</h2>
+                </div>
+                <div class="summary-card expense">
+                    <span>Expenses</span>
+                    <h2 id="totalExpense">₹0.00</h2>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <h3>Add Transaction</h3>
+                <div class="form-grid">
+                    <input type="text" id="desc" placeholder="Description (e.g. Salary, Rent)" />
+                    <input type="number" id="amount" placeholder="Amount" min="0" />
+                    <div class="custom-select-wrapper" id="categoryWrapper">
+                        <div class="custom-select">
+                            <div class="custom-select-trigger">
+                                <span>🍔 Food</span>
+                                <div class="arrow"></div>
+                            </div>
+                            <div class="custom-options">
+                                <span class="custom-option selected" data-value="Food">🍔 Food</span>
+                                <span class="custom-option" data-value="Transport">🚌 Transport</span>
+                                <span class="custom-option" data-value="Shopping">🛍️ Shopping</span>
+                                <span class="custom-option" data-value="Bills">💡 Bills</span>
+                                <span class="custom-option" data-value="Health">🏥 Health</span>
+                                <span class="custom-option" data-value="Income">💼 Income</span>
+                                <span class="custom-option" data-value="Other">📦 Other</span>
+                            </div>
+                        </div>
+                        <input type="hidden" id="category" value="Food" />
+                    </div>
+                </div>
+                <button id="addBtn">Add Transaction</button>
+            </div>
+
+            <div class="chart-card fade-slide-delayed">
+                <h3>Spending Breakdown</h3>
+                <canvas id="myChart"></canvas>
+                <p id="noChart" style="color:#aaa;font-size:13px;text-align:center;margin-top:16px;">Add expenses to see
+                    chart</p>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="list-card">
+                <div class="list-header">
+                    <h3>Transactions</h3>
+                    <div class="sort-container">
+                        <span class="sort-label">Sort:</span>
+                        <div class="custom-select-wrapper" id="sortWrapper">
+                            <div class="custom-select">
+                                <div class="custom-select-trigger" style="min-width: 140px; padding: 10px;">
+                                    <span>Date: Newest</span>
+                                    <div class="arrow"></div>
+                                </div>
+                                <div class="custom-options">
+                                    <span class="custom-option selected" data-value="date-desc">Date: Newest</span>
+                                    <span class="custom-option" data-value="date-asc">Date: Oldest</span>
+                                    <span class="custom-option" data-value="amount-desc">Amount: High</span>
+                                    <span class="custom-option" data-value="amount-asc">Amount: Low</span>
+                                </div>
+                            </div>
+                            <input type="hidden" id="sortOrder" value="date-desc" />
+                        </div>
+                    </div>
+                </div>
+                <ul id="transactionList"></ul>
+                <p id="noTx" style="color:#aaa;font-size:13px;text-align:center;margin-top:16px;">No transactions yet
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
