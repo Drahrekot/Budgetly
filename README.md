@@ -4,68 +4,67 @@
   # 💸 Budgetly
 
   **Premium, Minimalist Finance Tracking.**  
-  A high-performance budget tracker designed with a sleek glassmorphic aesthetic inspired by modern enterprise dashboards. Track spending, visualize habits, and stay in absolute control.
+  A high-performance budget tracking engine designed for extreme speed and precision.
 
-  ![HTML](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
-  ![CSS](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
-  ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-  ![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white)
-
-  [View Live Demo →](https://Drahrekot.github.io/Budgetly)
-
+  [Demo](https://drahrekot.github.io/Budgetly/) • [Report Bug](https://github.com/Drahrekot/Budgetly/issues)
 </div>
 
 ---
 
-## ✨ Features
+## 🚀 Key Features
 
-- **🏦 HDFC Statement Importer**: Specialized `.txt` parser for HDFC Bank Statements. Automatically extracts **UPI IDs** as transaction names and truncates them for a clean, uniform UI.
-- **🖱️ Crystal Glass Cursor**: A custom, high-performance cursor with dynamic scaling, "Frosted Glass" lens effects, and context-aware "Danger Glow" (red) for destructive actions.
-- **✨ Cinematic Load-In**: Staggered entry animations for all cards using elastic `cubic-bezier` curves, creating a sophisticated dashboard "build" sequence on launch.
-- **📊 Advanced Analytics**: Real-time spending breakdown and trend visualization powered by Chart.js, optimized for zero-lag rendering.
-- **🧮 Integrated Calculator**: Professional-grade modal calculator with a "Use Amount" pipeline to instantly convert calculations into transactions.
-- **🛡️ Data Privacy & Portability**: 100% local processing. Export your entire history to **JSON** or import from previous backups/bank statements.
-- **🔍 Smart Filtering & Sorting**: Segment controls for Income/Expense views and deep sorting by Date/Amount with custom-engineered select menus.
-- **📱 Mobile-First Design**: Fully optimized for touch devices with adaptive layouts and intelligent cursor detachment for a native app feel.
+*   **🏦 Direct PDF Importer**: Industry-first in-browser PDF parsing for bank statements.
+*   **🖱️ GPU-Accelerated Cursor**: Zero-lag interaction system with context-aware "Lens" effects.
+*   **🎬 Cinematic Animation**: Orchestrated staggered load-in sequence at 60FPS.
+*   **📱 Mobile-First Native**: Optimized rendering paths for touch devices.
+
+---
+
+## 🏦 How to Import Statements
+
+Budgetly supports direct PDF/TXT imports from major financial apps. Follow these steps to sync your transactions:
+
+### 📱 Google Pay (PDF/Manual)
+1.  **Open Google Pay**: Go to your Profile (top right).
+2.  **Transaction History**: Tap on `Settings` > `Privacy & security` > `Data & personalization`.
+3.  **Download Info**: Select `Google Takeout` or `Download Transaction History`.
+4.  **Format**: Choose **PDF** (the preferred format).
+5.  **Import**: In Budgetly, click the **Import (↑)** button and select your Google Pay PDF.
+    *   *Note: Budgetly automatically detects GPay format and handles squashed text logs.*
+
+### 🏢 HDFC Bank (NetBanking)
+1.  **Login**: Access HDFC NetBanking on your PC or Mobile.
+2.  **Accounts**: Go to `Enquire` > `Account Details` > `View Statement`.
+3.  **Period**: Select your desired date range.
+4.  **Export**: Scroll to the bottom and select **"Text Delimited"** or **"PDF"**.
+5.  **Import**: Click the **Import (↑)** button in Budgetly.
+    *   *Tip: Use the Text format for the fastest processing of large multi-year histories.*
+
+### 💾 Backup & Restore (JSON)
+1.  **Export**: Click the **Export (↓)** icon to save your entire Budgetly history as a `.json` file.
+2.  **Restore**: Use the **Import (↑)** icon and select your `.json` backup to move your data between devices.
+
+---
+
+## ⚡ Performance Optimization
+
+Budgetly is built for "Crazy Fast" responsiveness:
+*   **Read-Mutation Layering**: Scripts are designed to avoid Layout Thrashing by separating DOM reads from style writes.
+*   **Layer Hints**: Uses `will-change: transform` and `translate3d` to keep calculations on the GPU.
+*   **Variable Injection**: Modern CSS Variable system allows for style updates without re-calculating the entire page tree.
 
 ---
 
 ## 🛠️ Built With
 
-| Technology | Role |
-| :--- | :--- |
-| **Vanilla JS** | Core State Engine, HDFC Parser & Event Delegation Logic |
-| **Geist Font** | Premium Typography for Maximum Readability |
-| **CSS3** | GPU-Accelerated Animations, Glassmorphism & Variable-Based Theme |
-| **Chart.js** | Interactive Financial Visualization |
-| **Storage API** | Seamless Browser-Level Session Persistence |
-
----
-
-## 🚀 Getting Started
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Drahrekot/Budgetly.git
-   ```
-2. **Launch the app**:
-   Open `index.html` in any modern browser. No build steps or installations required.
-
----
-
-## 📁 Project Structure
-
-```text
-Budgetly/
-├── index.html       # Strategic Dashboard Layout & Semantic HTML
-├── style.css        # SRE.ai Design System & Staggered Animations
-├── script.js        # HDFC Parser, Calculator Engine & CRUD Logic
-├── logo.svg         # Clean Vector Brand Assets
-└── README.md        # Comprehensive Feature Documentation
-```
+*   **Logic**: Vanilla JavaScript (ES6+)
+*   **Design**: Modern CSS (Flexbox/Grid/Backdrop Filters)
+*   **Charts**: Chart.js 4.0
+*   **PDF Engine**: PDF.js (Mozilla)
+*   **Animations**: Custom Cubic-Bezier Curves
 
 ---
 
 <div align="center">
-  Crafted with precision by <a href="https://github.com/Drahrekot">Drahrekot</a>
+  MADE WITH ❤️ FOR BETTER FINANCES
 </div>

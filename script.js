@@ -45,7 +45,8 @@ function addTransaction() {
 }
 
 function deleteTransaction(id) {
-    transactions = transactions.filter(t => t.id !== id);
+    // Robust comparison using Number to handle both int and float IDs
+    transactions = transactions.filter(t => Number(t.id) !== Number(id));
     save();
     render();
 }
@@ -130,7 +131,8 @@ function render() {
 txList.addEventListener('click', (e) => {
     const btn = e.target.closest('.del-btn-side');
     if (btn) {
-        const id = parseInt(btn.dataset.id);
+        // Use Number() to support fractional IDs from statement imports
+        const id = Number(btn.getAttribute('data-id'));
         deleteTransaction(id);
     }
 });
@@ -616,6 +618,10 @@ const exportBtn = document.getElementById('exportBtn');
 const importBtn = document.getElementById('importBtn');
 const importFile = document.getElementById('importFile');
 
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+}
+
 if (exportBtn) {
     exportBtn.addEventListener('click', () => {
         if (transactions.length === 0) {
@@ -635,29 +641,23 @@ if (exportBtn) {
 if (importBtn && importFile) {
     importBtn.addEventListener('click', () => importFile.click());
     
-    importFile.addEventListener('change', (e) => {
+    importFile.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             const content = event.target.result;
+            let textToParse = '';
+            let sourceFile = file.name;
+
             try {
                 if (file.name.endsWith('.txt')) {
-                    const imported = parseHDFCStatement(content);
-                    if (imported.length > 0) {
-                        if (confirm(`Detected ${imported.length} transactions in HDFC Statement. Import them?`)) {
-                            transactions = [...transactions, ...imported]; // Append instead of overwrite for statements
-                            save();
-                            render();
-                            alert('HDFC Statement imported successfully!');
-                        }
-                    } else {
-                        alert('No valid transactions found in the text file.');
-                    }
+                    textToParse = content;
                 } else if (file.name.endsWith('.pdf')) {
-                    alert('PDF processing is not supported directly. Please copy the text from your PDF statement into a .txt file and import that instead.');
+                    textToParse = await extractTextFromPDF(content);
                 } else {
+                    // Assume JSON for others
                     const imported = JSON.parse(content);
                     if (Array.isArray(imported)) {
                         if (confirm('Importing will overwrite your current history. Continue?')) {
@@ -669,6 +669,30 @@ if (importBtn && importFile) {
                     } else {
                         alert('Invalid JSON format.');
                     }
+                    importFile.value = '';
+                    return;
+                }
+
+                // Process extracted text
+                if (textToParse) {
+                    let imported = parseHDFCStatement(textToParse);
+                    let source = 'HDFC Statement';
+                    
+                    if (imported.length === 0) {
+                        imported = parseGooglePayStatement(textToParse);
+                        source = 'Google Pay Statement';
+                    }
+
+                    if (imported.length > 0) {
+                        if (confirm(`Detected ${imported.length} transactions. Import them?`)) {
+                            transactions = [...transactions, ...imported];
+                            save();
+                            render();
+                            alert(`Transactions imported successfully!`);
+                        }
+                    } else {
+                        alert('No valid HDFC or Google Pay transactions found in this file.');
+                    }
                 }
             } catch (err) {
                 alert('Error reading file. Make sure it is a valid format.');
@@ -676,60 +700,208 @@ if (importBtn && importFile) {
             }
             importFile.value = ''; 
         };
-        reader.readAsText(file);
+
+        if (file.name.endsWith('.pdf')) {
+            reader.readAsArrayBuffer(file);
+        } else {
+            reader.readAsText(file);
+        }
     });
 }
 
 function parseHDFCStatement(text) {
     const lines = text.split('\n');
     const imported = [];
-    const dateRegex = /^(\d{2}\/\d{2}\/\d{2})/;
+    const dateRegex = /(\d{2}\/\d{2}\/\d{2})/;
     
     lines.forEach(line => {
-        if (dateRegex.test(line.trim())) {
-            // HDFC Fixed Width Column analysis:
-            // Date: 0-8, Desc: 10-50, Withdrawal: 80-100, Deposit: 100-120
-            const dateStr = line.substring(0, 8).trim();
-            const rawDesc = line.substring(10, 50).trim();
-            const withdrawalPart = line.substring(80, 100).trim().replace(/,/g, '');
-            const depositPart = line.substring(100, 120).trim().replace(/,/g, '');
+        const trimmed = line.trim();
+        const dateMatch = trimmed.match(dateRegex);
+        
+        if (dateMatch) {
+            const dateStr = dateMatch[1];
+            const parts = trimmed.split(/\s{2,}/); 
             
-            const withdrawal = parseFloat(withdrawalPart);
-            const deposit = parseFloat(depositPart);
+            if (parts.length >= 4) {
+                const desc = parts[1] || 'HDFC Tx';
+                const withdrawal = parseFloat(parts[parts.length-3]?.replace(/,/g, ''));
+                const deposit = parseFloat(parts[parts.length-2]?.replace(/,/g, ''));
+                
+                let cleanedName = desc;
+                const upiMatch = desc.match(/[a-zA-Z0-9.\-_]+@([a-zA-Z0-9.\-_]+)/);
+                if (upiMatch) cleanedName = upiMatch[0];
+                if (cleanedName.length > 13) cleanedName = cleanedName.substring(0, 13);
 
-            // Extract UPI ID and truncate to 13 chars
-            let cleanedName = rawDesc;
-            const upiMatch = rawDesc.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/);
-            if (upiMatch) {
-                cleanedName = upiMatch[0];
-            } else {
-                cleanedName = rawDesc.replace(/^UPI-/, '');
+                if (!isNaN(withdrawal) && withdrawal > 0) {
+                    imported.push({
+                        id: Date.now() + Math.random(),
+                        desc: cleanedName,
+                        amount: withdrawal,
+                        category: 'Other',
+                        type: 'expense',
+                        date: dateStr
+                    });
+                } else if (!isNaN(deposit) && deposit > 0) {
+                    imported.push({
+                        id: Date.now() + Math.random(),
+                        desc: cleanedName,
+                        amount: deposit,
+                        category: 'Income',
+                        type: 'income',
+                        date: dateStr
+                    });
+                }
+            }
+        }
+    });
+    return imported;
+}
+
+function parseGooglePayStatement(text) {
+    const lines = text.split('\n');
+    const imported = [];
+    
+    // Primary Regex: Matches Date, Action, Name (non-greedy), and Amount
+    // Matches: 01 Feb, 2026  Paid to Raju Kumar  ₹45
+    const lineRegex = /(\d{1,2}\s[A-Za-z]{3},?\s\d{4})\s+(Paid to|Received from|Sent to|Requested from|Top-up to)\s+(.*?)\s+(?:₹|Rs\.|Rs|\$)\s?([\d,.]+)/i;
+
+    lines.forEach(line => {
+        const match = line.trim().match(lineRegex);
+        if (match) {
+            const [_, dateStr, action, rawName, amountStr] = match;
+            const amount = parseFloat(amountStr.replace(/,/g, ''));
+            const type = (action.toLowerCase().includes('received') || action.toLowerCase().includes('requested')) ? 'income' : 'expense';
+            
+            let name = rawName.trim();
+            // Handle Top-up case
+            if (action.toLowerCase().includes('top-up')) {
+                name = 'Wallet Top-up';
             }
             
-            if (cleanedName.length > 13) {
-                cleanedName = cleanedName.substring(0, 13);
+            // Truncate to 13 chars as per user preference
+            if (name.length > 13) {
+                name = name.substring(0, 13);
             }
-            
-            if (!isNaN(withdrawal) && withdrawal > 0) {
+
+            if (!isNaN(amount)) {
                 imported.push({
                     id: Date.now() + Math.random(),
-                    desc: cleanedName,
-                    amount: withdrawal,
-                    category: 'Other',
-                    type: 'expense',
-                    date: dateStr
-                });
-            } else if (!isNaN(deposit) && deposit > 0) {
-                imported.push({
-                    id: Date.now() + Math.random(),
-                    desc: cleanedName,
-                    amount: deposit,
-                    category: 'Income',
-                    type: 'income',
+                    desc: name,
+                    amount: amount,
+                    category: type === 'income' ? 'Income' : 'Other',
+                    type: type,
                     date: dateStr
                 });
             }
         }
     });
+
+    // Fallback: If no transactions found, try the token-based scanner for squashed text
+    if (imported.length === 0) {
+        const tokens = text.split(/\s+/);
+        let tempTx = null;
+        const preparedTokens = tokens.flatMap(t => {
+            if (t.match(/^[₹$]([\d,.]+)$/)) return [t.charAt(0), t.slice(1)];
+            return t;
+        });
+
+        for (let i = 0; i < preparedTokens.length; i++) {
+            const token = preparedTokens[i];
+            const dateMatch = token.match(/(\d{1,2}[A-Za-z]{3},?\d{4})/);
+            if (dateMatch) {
+                tempTx = { date: dateMatch[1], name: '', amount: null, type: 'expense' };
+                continue;
+            }
+            if (!tempTx) continue;
+
+            const actionMatch = token.match(/^(Paidto|Receivedfrom|Sentto|Requestedfrom|Paid|Received|Sent|Requested)/i);
+            if (actionMatch && !tempTx.name) {
+                const actionFull = token.toLowerCase();
+                tempTx.type = (actionFull.includes('received') || actionFull.includes('requested')) ? 'income' : 'expense';
+                let namePart = token.replace(/^(Paidto|Receivedfrom|Sentto|Requestedfrom|Paid|Received|Sent|Requested)\s?/i, '');
+                let j = i + 1;
+                while (j < preparedTokens.length) {
+                    const next = preparedTokens[j];
+                    if (next.includes('TransactionID') || next.includes('Paidby') || 
+                        next.match(/^[₹$]$/) || next.match(/^[₹$][\d,.]+/) || next.match(/^\d{1,2}[A-Za-z]{3}/)) break;
+                    namePart += (namePart ? ' ' : '') + next;
+                    j++;
+                }
+                tempTx.name = namePart.trim();
+                i = j - 1;
+                continue;
+            }
+
+            let amountVal = null;
+            if (token.match(/^[₹$]$/) && preparedTokens[i+1]) {
+                amountVal = parseFloat(preparedTokens[i+1].replace(/,/g, ''));
+                i++;
+            } else {
+                const m = token.match(/(?:₹|Rs\.|Rs|\$)([\d,.]+)/);
+                if (m) amountVal = parseFloat(m[1].replace(/,/g, ''));
+            }
+
+            if (amountVal !== null && !isNaN(amountVal)) {
+                tempTx.amount = amountVal;
+                if (tempTx.name && tempTx.name.length > 1) {
+                    let finalName = tempTx.name;
+                    if (finalName.length > 13) finalName = finalName.substring(0, 13);
+                    imported.push({
+                        id: Date.now() + Math.random(),
+                        desc: finalName,
+                        amount: tempTx.amount,
+                        category: tempTx.type === 'income' ? 'Income' : 'Other',
+                        type: tempTx.type,
+                        date: tempTx.date
+                    });
+                }
+                tempTx = null;
+            }
+        }
+    }
+    
     return imported;
+}
+
+/**
+ * Super-Robust PDF Text Extraction
+ * Reconstructs lines by coordinate sorting to handle fragmented PDF.js items
+ */
+async function extractTextFromPDF(data) {
+    try {
+        const loadingTask = pdfjsLib.getDocument({ data: data });
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            
+            // Sort items: Top-to-bottom (Y), then Left-to-right (X)
+            const items = textContent.items.sort((a, b) => {
+                const y1 = a.transform[5];
+                const y2 = b.transform[5];
+                if (Math.abs(y1 - y2) > 5) return y2 - y1; // Different line
+                return a.transform[4] - b.transform[4];   // Same line
+            });
+            
+            let lastY = -1;
+            let pageText = '';
+            for (const item of items) {
+                const currentY = item.transform[5];
+                if (lastY !== -1 && Math.abs(currentY - lastY) > 5) {
+                    pageText += '\n'; // Significant Y change = new line
+                } else if (lastY !== -1) {
+                    pageText += ' ';  // Small Y change = same line
+                }
+                pageText += item.str;
+                lastY = currentY;
+            }
+            fullText += pageText + '\n';
+        }
+        return fullText;
+    } catch (err) {
+        console.error('PDF extraction error:', err);
+        return '';
+    }
 }
