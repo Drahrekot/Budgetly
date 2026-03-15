@@ -5,6 +5,9 @@ const addBtn = document.getElementById('addBtn');
 const txList = document.getElementById('transactionList');
 const noTx = document.getElementById('noTx');
 const noChart = document.getElementById('noChart');
+const balanceEl = document.getElementById('balance');
+const incomeEl = document.getElementById('totalIncome');
+const expenseEl = document.getElementById('totalExpense');
 
 let transactions = JSON.parse(localStorage.getItem('budget-transactions')) || [];
 let chart = null;
@@ -51,71 +54,86 @@ function save() {
     localStorage.setItem('budget-transactions', JSON.stringify(transactions));
 }
 
+const CATEGORY_EMOJIS = {
+    'Food': '🍔', 'Transport': '🚌', 'Shopping': '🛍️', 
+    'Bills': '💡', 'Health': '🏥', 'Income': '💼', 'Other': '📦'
+};
+
 function render() {
-    // Totals
-    const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    let income = 0, expense = 0;
+    
+    // Performance: single pass for totals
+    for (const t of transactions) {
+        if (t.type === 'income') income += t.amount;
+        else expense += t.amount;
+    }
+    
     const balance = income - expense;
-
-    document.getElementById('balance').textContent = formatCurrency(balance);
-    document.getElementById('totalIncome').textContent = formatCurrency(income);
-    document.getElementById('totalExpense').textContent = formatCurrency(expense);
-
-    const categoryEmojis = {
-        'Food': '🍔',
-        'Transport': '🚌',
-        'Shopping': '🛍️',
-        'Bills': '💡',
-        'Health': '🏥',
-        'Income': '💼',
-        'Other': '📦'
-    };
+    balanceEl.textContent = formatCurrency(balance);
+    incomeEl.textContent = formatCurrency(income);
+    expenseEl.textContent = formatCurrency(expense);
 
     let filteredTransactions = transactions;
     if (typeof currentFilter !== 'undefined' && currentFilter !== 'all') {
         filteredTransactions = transactions.filter(t => t.type === currentFilter);
     }
-    
-    txList.innerHTML = '';
-    noTx.style.display = filteredTransactions.length === 0 ? 'block' : 'none';
 
-    let sortedTransactions = [...filteredTransactions];
     const sortValue = sortOrderSelect.value;
+    let sortedTransactions = [...filteredTransactions];
     
-    if (sortValue === 'date-desc') {
-        sortedTransactions.sort((a, b) => b.id - a.id);
-    } else if (sortValue === 'date-asc') {
-        sortedTransactions.sort((a, b) => a.id - b.id);
-    } else if (sortValue === 'amount-desc') {
-        sortedTransactions.sort((a, b) => b.amount - a.amount);
-    } else if (sortValue === 'amount-asc') {
-        sortedTransactions.sort((a, b) => a.amount - b.amount);
+    // Optimized Sorting
+    if (sortValue.startsWith('date')) {
+        const isAsc = sortValue.endsWith('asc');
+        sortedTransactions.sort((a, b) => isAsc ? a.id - b.id : b.id - a.id);
+    } else {
+        const isAsc = sortValue.endsWith('asc');
+        sortedTransactions.sort((a, b) => isAsc ? a.amount - b.amount : b.amount - a.amount);
     }
+
+    noTx.style.display = sortedTransactions.length === 0 ? 'block' : 'none';
+
+    // Batch DOM updates with DocumentFragment
+    const fragment = document.createDocumentFragment();
+    const newestId = sortedTransactions.length > 0 ? Math.max(...transactions.map(t => t.id)) : 0;
 
     sortedTransactions.forEach((t, index) => {
         const li = document.createElement('li');
         li.className = t.type;
-        li.style.animationDelay = `${index * 0.05}s`;
-        const emoji = categoryEmojis[t.category] || '';
+        // Only animate the very newest item
+        if (t.id === newestId) {
+            li.classList.add('new-item');
+        }
+        
+        const emoji = CATEGORY_EMOJIS[t.category] || '📦';
         const dateStr = t.date ? ` • ${t.date}` : '';
+        
         li.innerHTML = `
-      <div class="tx-card">
-        <div class="tx-left">
-          <span class="tx-desc">${t.desc}</span>
-          <span class="tx-cat">${emoji} ${t.category}${dateStr}</span>
-        </div>
-        <div class="tx-right">
-          <span class="tx-amount">${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}</span>
-        </div>
-      </div>
-      <button class="del-btn-side" onclick="deleteTransaction(${t.id})">🗑️</button>
-    `;
-        txList.appendChild(li);
+            <div class="tx-card">
+                <div class="tx-left">
+                    <span class="tx-desc">${t.desc}</span>
+                    <span class="tx-cat">${emoji} ${t.category}${dateStr}</span>
+                </div>
+                <div class="tx-right">
+                    <span class="tx-amount">${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}</span>
+                </div>
+            </div>
+            <button class="del-btn-side" data-id="${t.id}">🗑️</button>
+        `;
+        fragment.appendChild(li);
     });
 
-    // Chart
+    txList.replaceChildren(fragment); // High performance clear and append
     renderChart();
 }
+
+// Delegate delete events
+txList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.del-btn-side');
+    if (btn) {
+        const id = parseInt(btn.dataset.id);
+        deleteTransaction(id);
+    }
+});
 
 function renderChart() {
     let visibleTx = transactions;
@@ -126,18 +144,56 @@ function renderChart() {
     noChart.style.display = visibleTx.length === 0 ? 'block' : 'none';
 
     // Map each distinct transaction for individual X-axis points
-    const allTx = [...visibleTx].sort((a,b) => a.id - b.id);
-    const labels = allTx.map(t => t.desc.length > 12 ? t.desc.substring(0, 10)+'..' : t.desc);
+    const allTx = [...visibleTx].sort((a, b) => a.id - b.id);
+    const labels = allTx.map(t => t.desc.length > 12 ? t.desc.substring(0, 10) + '..' : t.desc);
 
-    if(typeof Chart !== 'undefined') Chart.defaults.color = '#8f8f9d';
+    if (typeof Chart !== 'undefined') Chart.defaults.color = '#8f8f9d';
 
-    if (chart) chart.destroy();
-
-    if (labels.length === 0) return;
+    if (labels.length === 0) {
+        if (chart) {
+            chart.destroy();
+            chart = null;
+        }
+        return;
+    }
 
     const datasets = [];
 
-    if (currentFilter === 'all' || currentFilter === 'income') {
+    if (currentFilter === 'all') {
+        let runningBalance = 0;
+        // Strict chronological sort for graph history
+        const balanceData = [...transactions].sort((a,b) => a.id - b.id).map(t => {
+            if (t.type === 'income') runningBalance += t.amount;
+            else runningBalance -= t.amount;
+            return runningBalance;
+        });
+        
+        // Match labels to the chronologically sorted history
+        const historyLabels = [...transactions].sort((a,b) => a.id - b.id).map(t => t.desc);
+
+        datasets.push({
+            label: 'Balance',
+            data: balanceData,
+            borderColor: '#ffffff',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#0f0f11',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#ffffff'
+        });
+        
+        if (chart) {
+            chart.data.labels = historyLabels;
+            chart.data.datasets = datasets;
+            chart.update('none');
+            return;
+        }
+    } else if (currentFilter === 'income') {
         const incomeData = allTx.map(t => t.type === 'income' ? t.amount : null);
 
         datasets.push({
@@ -146,19 +202,17 @@ function renderChart() {
             borderColor: '#34d399',
             backgroundColor: 'rgba(52, 211, 153, 0.1)',
             borderWidth: 2,
-            spanGaps: true, // Bridges gaps between scattered items of same type
+            spanGaps: true,
             fill: true,
             tension: 0.4,
             pointBackgroundColor: '#0f0f11',
             pointBorderColor: '#34d399',
             pointBorderWidth: 2,
-            pointRadius: currentFilter === 'all' ? 3 : 4,
+            pointRadius: 4,
             pointHoverRadius: 6,
             pointHoverBackgroundColor: '#ffffff'
         });
-    }
-
-    if (currentFilter === 'all' || currentFilter === 'expense') {
+    } else if (currentFilter === 'expense') {
         const expenseData = allTx.map(t => t.type === 'expense' ? t.amount : null);
 
         datasets.push({
@@ -173,58 +227,65 @@ function renderChart() {
             pointBackgroundColor: '#0f0f11',
             pointBorderColor: '#fb7185',
             pointBorderWidth: 2,
-            pointRadius: currentFilter === 'all' ? 3 : 4,
+            pointRadius: 4,
             pointHoverRadius: 6,
             pointHoverBackgroundColor: '#ffffff'
         });
     }
 
-    const ctx = document.getElementById('myChart').getContext('2d');
-    chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets
+    if (chart) {
+        chart.data.labels = labels;
+        chart.data.datasets = datasets;
+        chart.update('none');
+    } else {
+        const ctx = document.getElementById('myChart').getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: chartOptions
+        });
+    }
+}
+
+// Chart options cached outside for performance
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: 12 },
+    scales: {
+        y: {
+            border: { display: false },
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: {
+                callback: function (value) { return '₹' + value; },
+                font: { family: "'Geist', 'Inter', sans-serif" }
+            }
         },
-        options: {
-            responsive: true,
-            layout: { padding: 12 },
-            scales: {
-                y: {
-                    border: { display: false },
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { 
-                        callback: function(value) { return '₹' + value; },
-                        font: { family: "'Geist', 'Inter', sans-serif" }
-                    }
-                },
-                x: {
-                    border: { display: false },
-                    grid: { display: false },
-                    ticks: { font: { family: "'Geist', 'Inter', sans-serif" } }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(15, 15, 17, 0.95)',
-                    titleFont: { family: "'Geist', 'Inter', sans-serif", size: 13 },
-                    bodyFont: { family: "'Geist', 'Inter', sans-serif", size: 14, weight: 'bold' },
-                    padding: 12,
-                    cornerRadius: 8,
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderWidth: 1,
-                    displayColors: false,
-                    callbacks: {
-                        label: function(context) {
-                            return '₹' + context.parsed.y;
-                        }
-                    }
+        x: {
+            border: { display: false },
+            grid: { display: false },
+            ticks: { font: { family: "'Geist', 'Inter', sans-serif" } }
+        }
+    },
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            backgroundColor: 'rgba(15, 15, 17, 0.95)',
+            titleFont: { family: "'Geist', 'Inter', sans-serif", size: 13 },
+            bodyFont: { family: "'Geist', 'Inter', sans-serif", size: 14, weight: 'bold' },
+            padding: 12,
+            cornerRadius: 8,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            displayColors: false,
+            callbacks: {
+                label: function (context) {
+                    return '₹' + context.parsed.y;
                 }
             }
         }
-    });
-}
+    }
+};
 
 function formatCurrency(amount) {
     return '₹' + amount.toFixed(2);
@@ -243,7 +304,7 @@ function setupCustomSelect(wrapperId, isSort = false) {
     const hiddenInput = wrapper.querySelector('input[type="hidden"]');
     const triggerSpan = trigger.querySelector('span');
 
-    trigger.addEventListener('click', function(e) {
+    trigger.addEventListener('click', function (e) {
         // close others
         document.querySelectorAll('.custom-select.open').forEach(el => {
             if (el !== select) el.classList.remove('open');
@@ -253,7 +314,7 @@ function setupCustomSelect(wrapperId, isSort = false) {
     });
 
     options.forEach(option => {
-        option.addEventListener('click', function(e) {
+        option.addEventListener('click', function (e) {
             // Un-select all and select this
             options.forEach(opt => opt.classList.remove('selected'));
             this.classList.add('selected');
@@ -277,7 +338,7 @@ function setupCustomSelect(wrapperId, isSort = false) {
 }
 
 // Click outside to close
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     document.querySelectorAll('.custom-select.open').forEach(el => {
         el.classList.remove('open');
     });
@@ -291,7 +352,7 @@ setupCustomSelect('sortWrapper', true);
 document.querySelectorAll('.filter-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
         // Exclude the reset tracker button from filter active resetting
-        if (e.target.id === 'resetTrackerBtn') return; 
+        if (e.target.id === 'resetTrackerBtn') return;
 
         document.querySelectorAll('.filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
         e.target.classList.add('active');
@@ -318,11 +379,11 @@ if (resetBtn && confirmModal) {
     confirmResetBtn.addEventListener('click', () => {
         transactions = [];
         currentFilter = 'all';
-        
+
         // Re-select 'all' in the tabs visually
         document.querySelectorAll('.filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
         document.querySelector('.filter-tabs .filter-tab[data-filter="all"]').classList.add('active');
-        
+
         save();
         render();
         confirmModal.classList.remove('active');
@@ -391,7 +452,7 @@ function calculate() {
     const prev = parseFloat(calcPreviousValue);
     const current = parseFloat(calcCurrentValue);
     if (isNaN(prev) || isNaN(current)) return '0';
-    
+
     let result = 0;
     switch (calcOperator) {
         case '+': result = prev + current; break;
@@ -410,69 +471,237 @@ function updateCalcDisplay() {
         calcHistory.innerText = '';
     }
 }
+// Resizer Logic
+const resizer = document.getElementById('resizer');
+const leftPanel = document.getElementById('leftPanel');
+const rightPanel = document.getElementById('rightPanel');
+const mainLayout = document.getElementById('mainLayout');
+
+if (resizer && leftPanel && rightPanel) {
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        resizer.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+
+        const containerRect = mainLayout.getBoundingClientRect();
+        const pointerX = e.clientX - containerRect.left;
+        
+        // Calculate percentages
+        const leftWidth = (pointerX / containerRect.width) * 100;
+        const rightWidth = 100 - leftWidth;
+
+        // Constraints
+        if (leftWidth > 20 && leftWidth < 80) {
+            leftPanel.style.flex = leftWidth;
+            rightPanel.style.flex = rightWidth;
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isResizing = false;
+        resizer.classList.remove('dragging');
+        document.body.style.cursor = 'none'; // Back to hidden for custom cursor
+    });
+}
 
 // Custom Cursor Logic
 const cursor = document.getElementById('cursor');
-
 let isHovering = false;
+let mouseX = 0, mouseY = 0;
+let cursorX = 0, cursorY = 0;
 
 document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+
+function animateCursor() {
     if (!isHovering) {
-        cursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
+        // Direct assignment for zero lag when not hovering
+        cursor.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
         cursor.style.width = '18px';
         cursor.style.height = '18px';
         cursor.style.borderRadius = '50%';
     }
-});
+    requestAnimationFrame(animateCursor);
+}
+animateCursor();
 
-// Add hover effect to interactive elements
-const interactiveSelectors = 'button, .filter-tab, .custom-select-trigger, .custom-option, input, canvas, .tx-card, .del-btn-side, .calc-btn';
+// Optimized Cursor Hover Effects using Event Delegation
+const interactiveSelectors = 'button, .filter-tab, .custom-select-trigger, .custom-option, input, .tx-card, .del-btn-side, .calc-btn, .resizer, .icon-btn-pill';
 
-function addCursorHoverEffects() {
-    const interactives = document.querySelectorAll(interactiveSelectors);
+// Capturing event listeners for high performance delegated hover detection
+document.addEventListener('mouseover', (e) => {
+    const target = e.target.closest(interactiveSelectors);
+    if (!target) return;
+
+    target.classList.add('hover-invert');
+    if (isHovering) return;
+
+    isHovering = true;
+    cursor.classList.add('hovering');
     
-    interactives.forEach(el => {
-        // Prevent adding multiple listeners if re-rendered
-        if (!el.dataset.cursorEnhanced) {
-            el.dataset.cursorEnhanced = 'true';
-            
-            el.addEventListener('mouseenter', () => {
-                isHovering = true;
-                cursor.classList.add('hovering');
-                
-                const rect = el.getBoundingClientRect();
-                const padding = 12;
-                
-                cursor.style.width = `${rect.width + padding}px`;
-                cursor.style.height = `${rect.height + padding}px`;
-                
-                const targetX = rect.left - padding / 2;
-                const targetY = rect.top - padding / 2;
-                cursor.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
-                
-                const style = window.getComputedStyle(el);
-                let br = parseInt(style.borderRadius) || 8;
-                cursor.style.borderRadius = `${br + 4}px`;
-            });
-            
-            el.addEventListener('mouseleave', () => {
-                isHovering = false;
-                cursor.classList.remove('hovering');
-            });
+    // Check if it's a danger element
+    const isDanger = target.classList.contains('del-btn-side') || 
+                   target.classList.contains('floating-reset') || 
+                   target.classList.contains('confirm-btn') || 
+                   target.classList.contains('utility');
+    
+    if (isDanger) cursor.classList.add('cursor-danger');
+
+    const rect = target.getBoundingClientRect();
+    const padding = 12;
+
+    requestAnimationFrame(() => {
+        // High performance update: Match target size and position with pill-style cursor
+        cursor.style.width = `${rect.width + padding}px`;
+        cursor.style.height = `${rect.height + padding}px`;
+        // Use translate3d for GPU acceleration
+        cursor.style.transform = `translate3d(${rect.left - padding / 2}px, ${rect.top - padding / 2}px, 0)`;
+
+        const br = parseInt(window.getComputedStyle(target).borderRadius) || 8;
+        cursor.style.borderRadius = `${br + 4}px`;
+    });
+}, true);
+
+document.addEventListener('mouseout', (e) => {
+    const target = e.target.closest(interactiveSelectors);
+    const relatedTarget = e.relatedTarget ? e.relatedTarget.closest(interactiveSelectors) : null;
+    
+    if (target && target !== relatedTarget) {
+        target.classList.remove('hover-invert');
+        isHovering = false;
+        cursor.classList.remove('hovering');
+        cursor.classList.remove('cursor-danger');
+    }
+}, true);
+
+// Remove old expensive observer and addCursorHoverEffects function logic
+// (Cleaned up in the next step or consolidated here)
+
+// History Import/Export Logic
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importFile = document.getElementById('importFile');
+
+if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+        if (transactions.length === 0) {
+            alert('No transactions to export.');
+            return;
         }
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "budgetly_history.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
     });
 }
 
-// Initial setup
-addCursorHoverEffects();
+if (importBtn && importFile) {
+    importBtn.addEventListener('click', () => importFile.click());
+    
+    importFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-// Since the transaction list is dynamic, we need an observer to add listeners to new elements
-const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        if (mutation.addedNodes.length) {
-            addCursorHoverEffects();
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const content = event.target.result;
+            try {
+                if (file.name.endsWith('.txt')) {
+                    const imported = parseHDFCStatement(content);
+                    if (imported.length > 0) {
+                        if (confirm(`Detected ${imported.length} transactions in HDFC Statement. Import them?`)) {
+                            transactions = [...transactions, ...imported]; // Append instead of overwrite for statements
+                            save();
+                            render();
+                            alert('HDFC Statement imported successfully!');
+                        }
+                    } else {
+                        alert('No valid transactions found in the text file.');
+                    }
+                } else {
+                    const imported = JSON.parse(content);
+                    if (Array.isArray(imported)) {
+                        if (confirm('Importing will overwrite your current history. Continue?')) {
+                            transactions = imported;
+                            save();
+                            render();
+                            alert('History imported successfully!');
+                        }
+                    } else {
+                        alert('Invalid JSON format.');
+                    }
+                }
+            } catch (err) {
+                alert('Error reading file. Make sure it is a valid format.');
+                console.error(err);
+            }
+            importFile.value = ''; 
+        };
+        reader.readAsText(file);
+    });
+}
+
+function parseHDFCStatement(text) {
+    const lines = text.split('\n');
+    const imported = [];
+    const dateRegex = /^(\d{2}\/\d{2}\/\d{2})/;
+    
+    lines.forEach(line => {
+        if (dateRegex.test(line.trim())) {
+            // HDFC Fixed Width Column analysis:
+            // Date: 0-8, Desc: 10-50, Withdrawal: 80-100, Deposit: 100-120
+            const dateStr = line.substring(0, 8).trim();
+            const rawDesc = line.substring(10, 50).trim();
+            const withdrawalPart = line.substring(80, 100).trim().replace(/,/g, '');
+            const depositPart = line.substring(100, 120).trim().replace(/,/g, '');
+            
+            const withdrawal = parseFloat(withdrawalPart);
+            const deposit = parseFloat(depositPart);
+
+            // Extract UPI ID and truncate to 13 chars
+            let cleanedName = rawDesc;
+            const upiMatch = rawDesc.match(/[a-zA-Z0-9.\-_]+@[a-zA-Z0-9.\-_]+/);
+            if (upiMatch) {
+                cleanedName = upiMatch[0];
+            } else {
+                cleanedName = rawDesc.replace(/^UPI-/, '');
+            }
+            
+            if (cleanedName.length > 13) {
+                cleanedName = cleanedName.substring(0, 13);
+            }
+            
+            if (!isNaN(withdrawal) && withdrawal > 0) {
+                imported.push({
+                    id: Date.now() + Math.random(),
+                    desc: cleanedName,
+                    amount: withdrawal,
+                    category: 'Other',
+                    type: 'expense',
+                    date: dateStr
+                });
+            } else if (!isNaN(deposit) && deposit > 0) {
+                imported.push({
+                    id: Date.now() + Math.random(),
+                    desc: cleanedName,
+                    amount: deposit,
+                    category: 'Income',
+                    type: 'income',
+                    date: dateStr
+                });
+            }
         }
     });
-});
-
-observer.observe(document.body, { childList: true, subtree: true });
+    return imported;
+}

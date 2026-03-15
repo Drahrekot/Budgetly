@@ -17,12 +17,21 @@
                 <img src="https://raw.githubusercontent.com/Drahrekot/Budgetly/refs/heads/main/logo.svg" alt="Logo">
                 <h1>Budgetly</h1>
             </div>
-            <button id="calcOpenBtn" class="icon-btn-pill" title="Calculator">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
-            </button>
+            <div class="header-actions">
+                <button id="exportBtn" class="icon-btn-pill" title="Export History">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
+                <button id="importBtn" class="icon-btn-pill" title="Import History">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </button>
+                <input type="file" id="importFile" style="display: none;" accept=".json">
+                <button id="calcOpenBtn" class="icon-btn-pill" title="Calculator">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+                </button>
+            </div>
         </div>
-        <div class="main-layout">
-            <div class="left-panel">
+        <div class="main-layout" id="mainLayout">
+            <div class="left-panel" id="leftPanel">
             <div class="summary">
                 <div class="summary-card total">
                     <span>Balance</span>
@@ -65,42 +74,43 @@
                 <button id="addBtn">Add Transaction</button>
             </div>
 
-            <div class="chart-card fade-slide-delayed">
+            <div class="chart-card">
                 <h3>Spending Breakdown</h3>
-                <canvas id="myChart"></canvas>
+                <div class="chart-container">
+                    <canvas id="myChart"></canvas>
+                </div>
                 <p id="noChart" style="color:#aaa;font-size:13px;text-align:center;margin-top:16px;">Add expenses to see
                     chart</p>
             </div>
-        </div>
-
-        <div class="right-panel">
+            </div>
+            <div class="resizer" id="resizer"></div>
+            <div class="right-panel" id="rightPanel">
             <div class="list-card">
                 <div class="list-header">
                     <h3>Transactions</h3>
-                    <div class="header-controls">
-                        <div class="sort-container">
-                            <span class="sort-label">Sort:</span>
-                            <div class="custom-select-wrapper" id="sortWrapper">
-                                <div class="custom-select">
-                                    <div class="custom-select-trigger" style="min-width: 140px; padding: 10px;">
-                                        <span>Date: Newest</span>
-                                        <div class="arrow"></div>
-                                    </div>
-                                    <div class="custom-options">
-                                        <span class="custom-option selected" data-value="date-desc">Date: Newest</span>
-                                        <span class="custom-option" data-value="date-asc">Date: Oldest</span>
-                                        <span class="custom-option" data-value="amount-desc">Amount: High</span>
-                                        <span class="custom-option" data-value="amount-asc">Amount: Low</span>
-                                    </div>
+                </div> 
+                <div class="header-controls">
+                    <div class="sort-container">
+                        <span class="sort-label">Sort:</span>
+                        <div class="custom-select-wrapper" id="sortWrapper">
+                            <div class="custom-select">
+                                <div class="custom-select-trigger" style="min-width: 140px; padding: 10px;">
+                                    <span>Date: Newest</span>
+                                    <div class="arrow"></div>
                                 </div>
-                                <input type="hidden" id="sortOrder" value="date-desc" />
+                                <div class="custom-options">
+                                    <span class="custom-option selected" data-value="date-desc">Date: Newest</span>
+                                    <span class="custom-option" data-value="date-asc">Date: Oldest</span>
+                                    <span class="custom-option" data-value="amount-desc">Amount: High</span>
+                                    <span class="custom-option" data-value="amount-asc">Amount: Low</span>
+                                </div>
                             </div>
+                            <input type="hidden" id="sortOrder" value="date-desc" />
                         </div>
-                    </div> <!-- Close header-controls -->
-                </div> <!-- Close list-header -->
+                    </div>
+                </div>
                 <ul id="transactionList"></ul>
-                <p id="noTx" style="color:#aaa;font-size:13px;text-align:center;margin-top:16px;">No transactions yet
-                </p>
+                <p id="noTx">No transactions yet</p>
                 <div class="filter-tabs floating-filter">
                     <button class="filter-tab active" data-filter="all">All</button>
                     <button class="filter-tab" data-filter="income">Income</button>
@@ -126,8 +136,7 @@
     <!-- Calculator Modal -->
     <div id="calcModal" class="modal-overlay">
         <div class="modal-card calc-card">
-            <div class="modal-header">
-                <h3>Calculator</h3>
+            <div class="calc-top-header">
                 <button id="calcCloseBtn" class="close-btn">&times;</button>
             </div>
             <div class="calc-display-wrapper">
@@ -158,7 +167,9 @@
                 <button class="calc-btn number double">0</button>
                 <button class="calc-btn number">.</button>
             </div>
-            <button id="calcUseBtn" class="calc-btn use-btn" data-action="use">Use Amount</button>
+            <button id="calcUseBtn" class="calc-btn use-btn" data-action="use">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+            </button>
         </div>
     </div>
 
