@@ -27,24 +27,23 @@ body {
     }
 }
 
-/* Custom Cursor */
+/* Custom Cursor - GPU Optimized */
 .cursor {
     position: fixed;
     top: 0;
     left: 0;
-    width: 20px;
-    height: 20px;
-    background-color: rgba(255, 255, 255, 0.4);
+    width: var(--c-w, 20px);
+    height: var(--c-h, 20px);
+    background-color: var(--c-bg, rgba(255, 255, 255, 0.4));
     border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
+    border-radius: var(--c-br, 50%);
     pointer-events: none;
-    transform: translate(-50%, -50%);
-    will-change: transform;
-    transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
-                height 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
-                border-radius 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
-                opacity 0.2s ease, 
-                background-color 0.2s ease;
+    transform: translate3d(var(--c-x, 0), var(--c-y, 0), 0) translate(-50%, -50%);
+    will-change: transform, width, height, border-radius;
+    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+                height 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+                border-radius 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+                background-color 0.25s ease;
     z-index: 9999;
 }
 
@@ -52,34 +51,29 @@ body {
     .cursor {
         display: none !important;
     }
-
-    * {
-        cursor: auto !important;
-    }
+    * { cursor: auto !important; }
 }
 
 .cursor.hovering {
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1.5px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1), inset 0 0 10px rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
 }
 
 .cursor.hovering.cursor-danger {
-    background-color: rgba(251, 113, 133, 0.15);
-    border-color: rgba(251, 113, 133, 0.5);
-    box-shadow: 0 0 30px rgba(251, 113, 133, 0.2);
+    background-color: rgba(251, 113, 133, 0.1);
+    border-color: rgba(251, 113, 133, 0.4);
+    box-shadow: 0 0 20px rgba(251, 113, 133, 0.15);
 }
 
 .hover-invert {
-    filter: brightness(1.25) !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    box-shadow: 0 0 40px rgba(255, 255, 255, 0.1) !important;
-    z-index: 100;
+    background: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.05) !important;
+    transition: background 0.2s ease !important;
 }
 
 .hover-invert * {
-    /* Keeping text bright since we are only lightening slightly */
-    filter: brightness(1.1) !important;
+    opacity: 1 !important;
 }
 
 /* Neutral preservation since we are not inverting anymore */
@@ -153,19 +147,45 @@ li.expense .tx-card.hover-invert .tx-amount {
 }
 
 .resizer {
-    width: 4px;
+    width: 6px;
     cursor: col-resize;
-    background: rgba(255, 255, 255, 0.02);
-    transition: background 0.3s;
-    margin: 0 10px;
-    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: background 0.3s, transform 0.2s;
+    margin: 0 4px;
+    border-radius: 3px;
     position: relative;
     z-index: 10;
 }
 
+.resizer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -10px;
+    right: -10px;
+    bottom: 0;
+    cursor: col-resize;
+}
+
 .resizer:hover,
 .resizer.dragging {
-    background: rgba(139, 92, 246, 0.4);
+    background: rgba(139, 92, 246, 0.6);
+    transform: scaleX(1.5);
+}
+
+body.resizing {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    cursor: col-resize !important;
+}
+
+body.resizing * {
+    pointer-events: none !important;
+}
+
+body.resizing .cursor,
+body.resizing #resizer {
+    pointer-events: auto !important;
 }
 
 .right-panel {
@@ -530,11 +550,12 @@ button#addBtn:active {
     flex-grow: 1;
     overflow-y: auto;
     max-height: 540px;
-    padding: 10px 15px; /* Added horizontal padding to prevent glow clipping (Boxing) */
-    margin: 0 -15px; /* Offset padding to keep alignment */
+    padding: 10px 15px; 
+    margin: 0 -15px; 
     padding-bottom: 80px;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    content-visibility: auto; /* Optimization for long lists */
 }
 
 #transactionList::-webkit-scrollbar {
@@ -1119,6 +1140,12 @@ li .tx-cat {
     .modal-card {
         width: 90%;
         padding: 24px;
+    }
+
+    .modal-overlay {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: rgba(0, 0, 0, 0.85);
     }
 }
 

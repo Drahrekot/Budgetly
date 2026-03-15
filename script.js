@@ -477,12 +477,15 @@ const leftPanel = document.getElementById('leftPanel');
 const rightPanel = document.getElementById('rightPanel');
 const mainLayout = document.getElementById('mainLayout');
 
+let isResizing = false;
+
 if (resizer && leftPanel && rightPanel) {
-    let isResizing = false;
 
     resizer.addEventListener('mousedown', (e) => {
         isResizing = true;
         resizer.classList.add('dragging');
+        document.body.classList.add('resizing');
+        cursor.classList.add('hovering');
         document.body.style.cursor = 'col-resize';
     });
 
@@ -504,30 +507,45 @@ if (resizer && leftPanel && rightPanel) {
     });
 
     document.addEventListener('mouseup', () => {
+        if (!isResizing) return;
         isResizing = false;
         resizer.classList.remove('dragging');
-        document.body.style.cursor = 'none'; // Back to hidden for custom cursor
+        document.body.classList.remove('resizing');
+        cursor.classList.remove('hovering');
+        isHovering = false;
+        document.body.style.cursor = 'none'; 
     });
 }
 
-// Custom Cursor Logic
+// Custom Cursor Logic - GPU Optimized
 const cursor = document.getElementById('cursor');
 let isHovering = false;
 let mouseX = 0, mouseY = 0;
-let cursorX = 0, cursorY = 0;
 
 document.addEventListener('mousemove', (e) => {
     mouseX = e.clientX;
     mouseY = e.clientY;
-});
+    
+    // Low latency background position update
+    if (!isHovering && !isResizing) {
+        cursor.style.setProperty('--c-x', `${mouseX}px`);
+        cursor.style.setProperty('--c-y', `${mouseY}px`);
+    }
+}, { passive: true });
 
 function animateCursor() {
-    if (!isHovering) {
-        // Direct assignment for zero lag when not hovering
-        cursor.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
-        cursor.style.width = '18px';
-        cursor.style.height = '18px';
-        cursor.style.borderRadius = '50%';
+    if (isResizing) {
+        cursor.style.setProperty('--c-x', `${mouseX}px`);
+        cursor.style.setProperty('--c-y', `${mouseY}px`);
+        cursor.style.setProperty('--c-w', '6px');
+        cursor.style.setProperty('--c-h', '60px');
+        cursor.style.setProperty('--c-br', '3px');
+        cursor.style.setProperty('--c-bg', 'rgba(139, 92, 246, 0.8)');
+    } else if (!isHovering) {
+        cursor.style.setProperty('--c-w', '20px');
+        cursor.style.setProperty('--c-h', '20px');
+        cursor.style.setProperty('--c-br', '50%');
+        cursor.style.setProperty('--c-bg', 'rgba(255, 255, 255, 0.4)');
     }
     requestAnimationFrame(animateCursor);
 }
@@ -538,9 +556,15 @@ const interactiveSelectors = 'button, .filter-tab, .custom-select-trigger, .cust
 
 // Capturing event listeners for high performance delegated hover detection
 document.addEventListener('mouseover', (e) => {
+    if (isResizing) return;
+    
     const target = e.target.closest(interactiveSelectors);
-    if (!target) return;
+    if (!target || target.classList.contains('hover-invert')) return;
 
+    // HIGH PERFORMANCE: Read before Write to avoid Layout Thrash
+    const rect = target.getBoundingClientRect();
+    
+    // Mutation phase
     target.classList.add('hover-invert');
     if (isHovering) return;
 
@@ -555,22 +579,24 @@ document.addEventListener('mouseover', (e) => {
     
     if (isDanger) cursor.classList.add('cursor-danger');
 
-    const rect = target.getBoundingClientRect();
     const padding = 12;
+    // Map radii manually to avoid expensive getComputedStyle lookup
+    let br = 12;
+    if (target.classList.contains('summary-card')) br = 20;
+    if (target.classList.contains('tx-card')) br = 14;
+    if (target.classList.contains('icon-btn-pill')) br = 12;
 
     requestAnimationFrame(() => {
-        // High performance update: Match target size and position with pill-style cursor
-        cursor.style.width = `${rect.width + padding}px`;
-        cursor.style.height = `${rect.height + padding}px`;
-        // Use translate3d for GPU acceleration
-        cursor.style.transform = `translate3d(${rect.left - padding / 2}px, ${rect.top - padding / 2}px, 0)`;
-
-        const br = parseInt(window.getComputedStyle(target).borderRadius) || 8;
-        cursor.style.borderRadius = `${br + 4}px`;
+        cursor.style.setProperty('--c-w', `${rect.width + padding}px`);
+        cursor.style.setProperty('--c-h', `${rect.height + padding}px`);
+        cursor.style.setProperty('--c-x', `${rect.left + rect.width / 2}px`);
+        cursor.style.setProperty('--c-y', `${rect.top + rect.height / 2}px`);
+        cursor.style.setProperty('--c-br', `${br + 4}px`);
     });
 }, true);
 
 document.addEventListener('mouseout', (e) => {
+    if (isResizing) return; // Maintain state while dragging
     const target = e.target.closest(interactiveSelectors);
     const relatedTarget = e.relatedTarget ? e.relatedTarget.closest(interactiveSelectors) : null;
     

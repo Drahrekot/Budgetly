@@ -19,13 +19,14 @@
 
 ## ✨ Features
 
-- **📊 Advanced Line Analytics**: Dynamic line chart tracking every single transaction point (X-axis) with independent Income/Expense trend lines.
-- **🧮 Integrated Calculator**: Built-in modal calculator with a "Use Amount" shortcut to instantly pipe results into your transactions.
-- **🔍 Smart Filtering**: Segmented controls to toggle between All, Income, and Expense views instantly.
-- **🔄 Dynamic Sorting**: Sort your entire history by Date or Amount (High/Low) with custom-styled dropdowns.
-- **🧹 Data Management**: Standalone delete buttons for every transaction and a secure global "Reset Data" modal.
-- **📱 Fully Responsive**: Seamlessly scales from 4K monitors to mobile devices, with intelligent cursor-hiding on touch screens.
-- **💾 Local Persistence**: All data is securely automatically saved to `localStorage` for persistent tracking.
+- **🏦 HDFC Statement Importer**: Specialized `.txt` parser for HDFC Bank Statements. Automatically extracts **UPI IDs** as transaction names and truncates them for a clean, uniform UI.
+- **🖱️ Crystal Glass Cursor**: A custom, high-performance cursor with dynamic scaling, "Frosted Glass" lens effects, and context-aware "Danger Glow" (red) for destructive actions.
+- **✨ Cinematic Load-In**: Staggered entry animations for all cards using elastic `cubic-bezier` curves, creating a sophisticated dashboard "build" sequence on launch.
+- **📊 Advanced Analytics**: Real-time spending breakdown and trend visualization powered by Chart.js, optimized for zero-lag rendering.
+- **🧮 Integrated Calculator**: Professional-grade modal calculator with a "Use Amount" pipeline to instantly convert calculations into transactions.
+- **🛡️ Data Privacy & Portability**: 100% local processing. Export your entire history to **JSON** or import from previous backups/bank statements.
+- **🔍 Smart Filtering & Sorting**: Segment controls for Income/Expense views and deep sorting by Date/Amount with custom-engineered select menus.
+- **📱 Mobile-First Design**: Fully optimized for touch devices with adaptive layouts and intelligent cursor detachment for a native app feel.
 
 ---
 
@@ -33,11 +34,11 @@
 
 | Technology | Role |
 | :--- | :--- |
-| **Vanilla JS** | Core State Management & State Machine Logic |
-| **CSS3** | Glassmorphism, Custom Variables, & Advanced Animations |
-| **Chart.js** | Transaction-level Line Graph Visualization |
-| **HTML5** | Semantic DOM Structure |
-| **Storage API** | Browser-level Data Persistence |
+| **Vanilla JS** | Core State Engine, HDFC Parser & Event Delegation Logic |
+| **Geist Font** | Premium Typography for Maximum Readability |
+| **CSS3** | GPU-Accelerated Animations, Glassmorphism & Variable-Based Theme |
+| **Chart.js** | Interactive Financial Visualization |
+| **Storage API** | Seamless Browser-Level Session Persistence |
 
 ---
 
@@ -56,11 +57,11 @@
 
 ```text
 Budgetly/
-├── index.html       # Structuring the Dashboard & Modals
-├── style.css        # SRE.ai Design System & Animations
-├── script.js        # Calculator Logic, Charting & CRUD operations
-├── logo.svg         # Clean Vector Logo
-└── README.md        # Documentation
+├── index.html       # Strategic Dashboard Layout & Semantic HTML
+├── style.css        # SRE.ai Design System & Staggered Animations
+├── script.js        # HDFC Parser, Calculator Engine & CRUD Logic
+├── logo.svg         # Clean Vector Brand Assets
+└── README.md        # Comprehensive Feature Documentation
 ```
 
 ---
