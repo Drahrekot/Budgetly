@@ -655,6 +655,8 @@ if (importBtn && importFile) {
                     } else {
                         alert('No valid transactions found in the text file.');
                     }
+                } else if (file.name.endsWith('.pdf')) {
+                    alert('PDF processing is not supported directly. Please copy the text from your PDF statement into a .txt file and import that instead.');
                 } else {
                     const imported = JSON.parse(content);
                     if (Array.isArray(imported)) {
